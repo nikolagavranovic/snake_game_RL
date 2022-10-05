@@ -20,13 +20,20 @@ class Agent:
         self.obstacles_infront = np.array([0, 1]) # 0 if dont exis, 1 if does
         self.obstacles_left = np.array([0, 1]) # 0 if dont exis, 1 if does
         self.obstacles_right = np.array([0, 1]) # 0 if dont exis, 1 if does
-        self.dist_to_food = np.array([0, 1])  # 0 if decrreses, 1 if increases
+        self.dist_to_food = np.linspace(0, 580, 30) # distance from food can be 30 discrete points
         self.food_left = np.array([0, 1]) # 0 if is left, 1 if isn't
         self.food_right = np.array([0, 1]) # 0 if is left, 1 if isn't
         self.food_above = np.array([0, 1]) # 0 if is left, 1 if isn't
         self.food_below = np.array([0, 1]) # 0 if is left, 1 if isn't
         self.actions = np.array([Action.RIGHT, Action.LEFT, Action.FORWARD])
-        self.q_table = np.zeros(shape = (2, 2, 2, 2, 2, 2, 2, 2, 3))
+        self.q_table = np.zeros(shape = (len(self.obstacles_infront), len(self.obstacles_left), 
+            len(self.obstacles_right), len(self.dist_to_food), len(self.food_left), 
+            len(self.food_right), len(self.food_above), len(self.food_below), len(self.actions)))
+        
+        # this field indicates how many fields are explored and how many is yet to be explored
+        self.explored_fields = np.zeros(shape = (len(self.obstacles_infront), len(self.obstacles_left), 
+            len(self.obstacles_right), len(self.dist_to_food), len(self.food_left), 
+            len(self.food_right), len(self.food_above), len(self.food_below), len(self.actions)))
         
     def get_action(self, epsilon, optimal_action):
         """ Chooses an action according to epsilon greedy policy.
@@ -62,9 +69,11 @@ class Agent:
 
             reward = self.game.get_reward()
 
-            self.q_table += self.alpha*(
+            self.q_table[obs_infront, obs_left, obs_right, dist_to_food, food_left, food_right, food_above, food_below, action_ind] += self.alpha*(
                     reward + self.gamma * max(self.q_table[newobs_infront, newobs_left, newobs_right, newdist_to_food, newfood_left, newfood_right, newfood_above, newfood_below , :]) - 
                     self.q_table[obs_infront, obs_left, obs_right, dist_to_food, food_left, food_right, food_above, food_below, action_ind])
+
+            self.explored_fields[obs_infront, obs_left, obs_right, dist_to_food, food_left, food_right, food_above, food_below, action_ind] = 1
 
     def learn(self, num_of_episodes = 200, epsilon_start = 0.25, epsilon_stop = 0.01):
         epsilon_step = (epsilon_start - epsilon_stop)/num_of_episodes
@@ -75,6 +84,14 @@ class Agent:
             epsilon -= epsilon_step
             if episode % 100 == 0:
                 print(f"Episode {episode} finished.")
+                self.print_info()
+    
+    def print_info(self):
+        print(f"Average q-matrix is: {np.average(self.q_table)}")
+        max_value = max(self.q_table[self.q_table != np.NAN])                               
+        obs_infront, obs_left, obs_right, dist_to_food_ind, food_left, food_right, food_above, food_below, action = np.where(self.q_table == max_value)
+        print(f"Maximum q value is {max_value} for distance {self.dist_to_food[dist_to_food_ind]}")
+        print(f"number of unexplored fields is {len(self.explored_fields[self.explored_fields == 0])}") 
 
 
     def control(self):
