@@ -17,10 +17,11 @@ class Agent:
         # 3. food left, right, above, below head (2, 2, 2, 2)
         # 4. actions: turn right, turn left, go forward (3)
 
+
         self.obstacles_infront = np.array([0, 1]) # 0 if dont exis, 1 if does
         self.obstacles_left = np.array([0, 1]) # 0 if dont exis, 1 if does
         self.obstacles_right = np.array([0, 1]) # 0 if dont exis, 1 if does
-        self.dist_to_food = np.linspace(0, 580, 30) # distance from food can be 30 discrete points
+        self.dist_to_food = np.linspace(0, 580, 30) # distance from food can be 30 discrete points, 580 is maximum possible distance between head and food
         self.food_left = np.array([0, 1]) # 0 if is left, 1 if isn't
         self.food_right = np.array([0, 1]) # 0 if is left, 1 if isn't
         self.food_above = np.array([0, 1]) # 0 if is left, 1 if isn't
@@ -86,20 +87,25 @@ class Agent:
         game_over = False
         while not game_over:
             obs_infront, obs_left, obs_right, dist_to_food, food_left, food_right, food_above, food_below = self.game.get_states()
-            optimal_action = int(np.argmax(self.q_table[obs_infront, obs_left, obs_right, dist_to_food, food_left, food_right, food_above, food_below, :]))
+            # important: need to get discrete from continous state
+            dist_disc_ind = int(np.argmin(abs(self.dist_to_food - dist_to_food)))   # smallest difference of current distance to the closest discrete distance
+            
+
+            optimal_action = int(np.argmax(self.q_table[obs_infront, obs_left, obs_right, dist_disc_ind, food_left, food_right, food_above, food_below, :]))
 
             action, action_ind = self.get_action(epsilon, optimal_action)
             
             game_over = self.game.play_step(action)  
             newobs_infront, newobs_left, newobs_right, newdist_to_food, newfood_left, newfood_right, newfood_above, newfood_below = self.game.get_states()
-
+            newdist_disc_ind = np.argmin(abs(self.dist_to_food - newdist_to_food))   # smallest difference of current distance to the closest discrete distance
+            
             reward = self.game.get_reward()
 
-            self.q_table[obs_infront, obs_left, obs_right, dist_to_food, food_left, food_right, food_above, food_below, action_ind] += self.alpha*(
-                    reward + self.gamma * max(self.q_table[newobs_infront, newobs_left, newobs_right, newdist_to_food, newfood_left, newfood_right, newfood_above, newfood_below , :]) - 
-                    self.q_table[obs_infront, obs_left, obs_right, dist_to_food, food_left, food_right, food_above, food_below, action_ind])
+            self.q_table[obs_infront, obs_left, obs_right, dist_disc_ind, food_left, food_right, food_above, food_below, action_ind] += self.alpha*(
+                    reward + self.gamma * max(self.q_table[newobs_infront, newobs_left, newobs_right, newdist_disc_ind, newfood_left, newfood_right, newfood_above, newfood_below , :]) - 
+                    self.q_table[obs_infront, obs_left, obs_right, dist_disc_ind, food_left, food_right, food_above, food_below, action_ind])
 
-            self.explored_fields[obs_infront, obs_left, obs_right, dist_to_food, food_left, food_right, food_above, food_below, action_ind] = 1
+            self.explored_fields[obs_infront, obs_left, obs_right, dist_disc_ind, food_left, food_right, food_above, food_below, action_ind] = 1
 
     def learn(self, num_of_episodes = 200, epsilon_start = 0.25, epsilon_stop = 0.01):
         epsilon_step = (epsilon_start - epsilon_stop)/num_of_episodes
@@ -126,7 +132,9 @@ class Agent:
         while not game_over:
 
             obs_infront, obs_left, obs_right, dist_to_food, food_left, food_right, food_above, food_below = game.get_states()
-            optimal_action = int(np.argmax(self.q_table[obs_infront, obs_left, obs_right, dist_to_food, food_left, food_right, food_above, food_below, :]))
+            dist_disc_ind = np.argmin(abs(self.dist_to_food - dist_to_food))   # smallest difference of current distance to the closest discrete distance
+            
+            optimal_action = int(np.argmax(self.q_table[obs_infront, obs_left, obs_right, dist_disc_ind, food_left, food_right, food_above, food_below, :]))
             
             game_over = game.play_step(self.actions[optimal_action])  
 

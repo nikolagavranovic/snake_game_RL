@@ -68,6 +68,9 @@ class SnakeGame:
         return math.sqrt((pointA.x - pointB.x)**2 + (pointA.y - pointB.y)**2)
 
     def play_step(self, action):
+        # important NOTE: how rewards are distributed is very important in reinforcement learning
+        # colision must be avoided for any cost, so the negative reward is higher for making colision than for
+        # eating a food. Also, it's important to notice that every empty step is slight minus reward
 
         self.direction = self.get_direction(self.direction, action)
 
@@ -77,16 +80,16 @@ class SnakeGame:
         # place new food if eaten and move snake
         if (self.head.x == self.food.x) and (self.head.y == self.food.y):
             self.score += 1
-            self.reward = 10
+            self.reward = 20
             self.place_food()
         else:
-            self.reward = -0.5
+            self.reward = -1
             self.snake.pop()
 
         # check if game is over
         game_over = False
         if self.is_colision():
-            self.reward = -10
+            self.reward = -50
             game_over = True
             return game_over
 
@@ -145,10 +148,7 @@ class SnakeGame:
             else:
                 food_left = 0
                 food_right = 0
-            if self.dist_to_food[0] < self.dist_to_food[1]:
-                food_distance = 0  # smanjuje se distanca
-            else:
-                food_distance = 1
+            
 
         if self.direction == Direction.RIGHT:
             if self.is_colision(Point(self.head.x + BLOCKSIZE, self.head.y)): # if there is obstacle in front
@@ -185,10 +185,7 @@ class SnakeGame:
             else:
                 food_left = 0
                 food_right = 0
-            if self.dist_to_food[0] < self.dist_to_food[1]:
-                food_distance = 0  # smanjuje se distanca
-            else:
-                food_distance = 1
+            
             
         if self.direction == Direction.UP:
             if self.is_colision(Point(self.head.x, self.head.y + BLOCKSIZE)): # if there is obstacle in front
@@ -225,10 +222,7 @@ class SnakeGame:
             else:
                 food_left = 0
                 food_right = 0
-            if self.dist_to_food[0] < self.dist_to_food[1]:
-                food_distance = 0  # smanjuje se distanca
-            else:
-                food_distance = 1
+            
 
         if self.direction == Direction.DOWN:
             if self.is_colision(Point(self.head.x, self.head.y - BLOCKSIZE)): # if there is obstacle in front
@@ -265,12 +259,10 @@ class SnakeGame:
             else:
                 food_left = 0
                 food_right = 0
-            if self.dist_to_food[0] < self.dist_to_food[1]:
-                food_distance = 0  # smanjuje se distanca
-            else:
-                food_distance = 1
+            
         
-        return obs_infront, obs_left, obs_right, food_infront, food_behind, food_left, food_right, food_distance
+        food_distance = self.calculate_distance(self.food, self.head)
+        return obs_infront, obs_left, obs_right, food_distance, food_left, food_right, food_infront, food_behind 
 
 
 
