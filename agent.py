@@ -34,7 +34,33 @@ class Agent:
         self.explored_fields = np.zeros(shape = (len(self.obstacles_infront), len(self.obstacles_left), 
             len(self.obstacles_right), len(self.dist_to_food), len(self.food_left), 
             len(self.food_right), len(self.food_above), len(self.food_below), len(self.actions)))
+
+    def save_agent_params(self):
+        """Saves parameters that defines agent to 6 seperate files.
+        """
+        np.save("q_matrix", self.q_table)
+        np.savez("parameters", obs_infront=self.obstacles_infront, 
+                obs_left=self.obstacles_left, obs_right=self.obstacles_right, 
+                dist_to_food=self.dist_to_food, food_left=self.food_left, food_right=self.food_right, 
+                food_above=self.food_above, food_below=self.food_below)
+        np.save("explored_fields", self.explored_fields)
         
+    def load_agent_params(self):
+        """Load agent parameters previously saved to files.
+        """
+        self.q_table = np.load("q_matrix.npy")        
+        parameters = np.load("parameters.npz")
+        self.obstacles_infront = parameters["obs_infront"]
+        self.obstacles_left = parameters["obs_left"]
+        self.obstacles_right = parameters["obs_right"]
+        self.dist_to_food = parameters["dist_to_food"]
+        self.food_left = parameters["food_left"]
+        self.food_right = parameters["food_right"]
+        self.food_above = parameters["food_above"]
+        self.food_below = parameters["food_below"]
+        self.actions = np.array([Action.RIGHT, Action.LEFT, Action.FORWARD])
+        self.explored_fields = np.load("explored_fields.npy")
+
     def get_action(self, epsilon, optimal_action):
         """ Chooses an action according to epsilon greedy policy.
 
